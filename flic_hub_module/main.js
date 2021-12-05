@@ -62,12 +62,14 @@ function getButtonName(data) {
 }
 
 function getBatteryIcon(battery_level) {
-	if(battery_level >= 99) {
+	if(battery_level === 'unknown') {
+		return 'mdi:battery-unknown';
+	} else if(battery_level >= 99) {
 		return 'mdi:battery';
 	} else if(battery_level < 99 && battery_level > CONFIG.WARNING_BATTERY_LEVEL) {
-		return 'mdi:battery-' + (battery_level / 10) + "0";
+		return 'mdi:battery-' + Math.round(battery_level / 10) + "0";
 	} else if(battery_level <= CONFIG.WARNING_BATTERY_LEVEL) {
-		return 'mdi:battery-alert-variant-outline';
+		return 'mdi:battery-off-outline';
 	}
 }
 
@@ -80,7 +82,8 @@ function sendButtonState(button, state) {
 			'state': state,
 			'attributes': {
 				'batteryStatus': data.batteryStatus,
-				'friendly_name': data.name == null ? getButtonName(data) : data.name
+				'friendly_name': data.name == null ? getButtonName(data) : data.name,
+				'icon': 'mdi:circle-slice-8'
 			}
 		})
 	});
@@ -88,12 +91,14 @@ function sendButtonState(button, state) {
 		'method': "POST",
 		'url': CONFIG.SERVER_HOST + "/api/states/sensor." + getButtonName(data) + "_battery",
 		'content': JSON.stringify({
-			'state': data.batteryStatus,
+			'state': data.batteryStatus ? data.batteryStatus : 'unknown',
 			'attributes': {
 				'device_class': 'battery',
 				'unit_of_measurement': '%',
 				'icon': getBatteryIcon(data.batteryStatus),
-				'friendly_name': (data.name == null ? getButtonName(data) : data.name) + " Battery"
+				'friendly_name': (data.name == null ? getButtonName(data) : data.name) + " Battery",
+				'battery_size': 'CR2016',
+				'battery_quantity': 1
 			}
 		})
 	});
@@ -107,7 +112,8 @@ function sendButtonEvent(event) {
 		'content': JSON.stringify({
 			'button_name': getButtonName(data),
 			'button_address': data.bdaddr,
-			'click_type': data.clickType
+			'click_type': data.clickType,
+			'friendly_name': data.name
 		})
 	});
 }
