@@ -12,6 +12,9 @@ const CLICK_HOLD = 'hold';
 const CLICK_SINGLE = 'single';
 const CLICK_DOUBLE = 'double';
 
+// Keep track of debounce per button
+const lastActions = [];
+
 //--------------------------------------------------------------------------------//
 
 function syncButtons() {
@@ -42,18 +45,31 @@ buttonManager.on("buttonDeleted", function(obj) {
 	sendButtonState(button, STATE_UNKNOWN);
 });
 
-var lasClickTimestamp = 0;
 buttonManager.on("buttonSingleOrDoubleClickOrHold", function(obj) {
 	const timestamp = Date.now();
 	var button = buttonManager.getButton(obj.bdaddr);
-	if(timestamp - lasClickTimestamp >= CONFIG.MIN_EVENTS_OFFSET) {
-		lasClickTimestamp = timestamp;
+	const lastAction = findOrInitLastAction(button);
+	if(timestamp - lastAction >= CONFIG.MIN_EVENTS_OFFSET) {
+		lastActions[button.button_name] = timestamp;
 		button.clickType = obj.isSingleClick ? CLICK_SINGLE : obj.isDoubleClick ? CLICK_DOUBLE : CLICK_HOLD;
 		sendButtonEvent(button);
 	} else {
-		console.log("Event was ignored");
+		console.log("Event was ignored due to debounce window: " + button.button_name);
 	}
 });
+
+/**
+ * Find or init the last time this button was clicked
+ * @param button
+ * @returns Date
+ */
+function findOrInitLastAction(button) {
+	var timestamp = lastActions[button.button_name];
+	if (!timestamp) {
+		timestamp = lastActions[button.button_name] = 0;
+	}
+	return timestamp;
+}
 
 //--------------------------------------------------------------------------------//
 
